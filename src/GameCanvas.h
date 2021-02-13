@@ -34,7 +34,22 @@ public:
 	void hideNotify();
 
 private:
-	gImage logo;
+	static const int KEY_A, KEY_D, KEY_S, KEY_W;
+
+	static const int gamepadNum = 2;
+
+	gImage background;
+	gImage character;
+	gImage gamepad[gamepadNum];
+	int gpx[gamepadNum], gpy[gamepadNum];
+	float crot;
+	float cx, cy, cw, ch;
+	float cspeed;
+	float cdx, cdy;
+	int keyno, keystate;
+	void moveCharacter();
+	gRect bgsrc, bgdst;
+
 };
 
 #endif /* GAMECANVAS_H_ */
