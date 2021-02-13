@@ -20,25 +20,24 @@ GameCanvas::GameCanvas(gBaseApp *root) : gBaseCanvas(root) {
 GameCanvas::~GameCanvas() {
 }
 
+/**
+ * Oyunda kullanilan tum degiskenlerin ilk degerleri burada verilir.
+ */
 void GameCanvas::setup() {
-//	logi("GlistApp setup")
-	background.loadImage("oyun/arkaplan1.jpg");
-	character.loadImage("oyun/erkek_tufek_00.png");
-	for(int i = 0; i < gamepadNum; i++) {
-		gamepad[i].loadImage("oyun/gamepad" + gToStr(i) + ".png");
-	}
-	gpx[0] = gamepad[0].getWidth() / 2;
-	gpy[0] = getHeight() - (gamepad[0].getHeight() / 2) - gamepad[0].getHeight();
-	gpx[1] = getWidth() - (gamepad[1].getWidth() / 2) - gamepad[1].getWidth();
-	gpy[1] = getHeight() - (gamepad[0].getHeight() / 2) - gamepad[0].getHeight();
+//	logi("GlistApp setup");
+	background.loadImage("oyun/arkaplan1.jpg"); // Arkaplan resmini ekledik
+	for (int i = 0; i < characterframenum; i++) character[i].loadImage("oyun/erkek_tufek_0" + gToStr(i) + ".png"); // Karakterimizi ekledik
 	crot = 0.0f;
-	cx = (getWidth() - character.getWidth()) >> 1;
-	cy = (getHeight() - character.getHeight()) >> 1;
-	cw = character.getWidth();
-	ch = character.getHeight();
+	cx = (getWidth() - character[0].getWidth()) >> 1;
+	cy = (getHeight() - character[0].getHeight()) >> 1;
+	cw = character[0].getWidth();
+	ch = character[0].getHeight();
 	cspeed = 4.0f;
 	cdx = 0.0f;
 	cdy = 0.0f;
+	characterframeno = 0;
+	characterframecounter = 0;
+	characterframecounterlimit = 4;
 	keystate = 0;
 	cammarginleft = getWidth() / 4;
 	cammarginright = getWidth() - (getWidth() / 4);
@@ -49,22 +48,16 @@ void GameCanvas::setup() {
 	bgsy = 0;
 }
 
-	//Coding Covnentions
 
 void GameCanvas::update() {
-	//logi("GlistApp update");
 	moveCharacter();
 	moveCamera();
 }
 
 void GameCanvas::draw() {
-	//logi("GlistApp draw");
-	bgsrc.set(bgsx, bgsy, bgsx + getWidth(), bgsy + getHeight());
-	background.drawSub(bgsrc, bgdst);
-	//logi("screenw:" + gToStr(getWidth()) + ", screenh:" + gToStr(getHeight()));
-	//background.drawSub(0, 0, 1280, 720, 0, 0, getWidth(), getHeight());
-	character.draw(cx, cy, cw, ch, crot);
-	for(int i = 0; i < gamepadNum; i++) gamepad[i].draw(gpx[i], gpy[i]);
+	drawBackground();
+	drawCharacter();
+	drawGui();
 }
 
 /**
@@ -72,47 +65,73 @@ void GameCanvas::draw() {
  * bir yone dogru hareket ettirme islemini yapar.
  */
 void GameCanvas::moveCharacter() {
-	if ((keystate & KEY_A) != 0) { // Sagdan ikinci bitte kayit olup olmadigini test ediyoruz
+	// Tuslara basilip basilmadigini test ediyoruz. Basilmis ise karakterin delta x ve delta y
+	// degerlerini hesapliyoruz.
+	if ((keystate & KEY_A) != 0) { // Sagdan 2.bitte kayit olup olmadigini test ediyoruz.
 		cdx += -std::cos(gDegToRad(crot)) * cspeed;
-		cdy += -std::sin(gDegToRad(crot)) * cspeed;
-	} else if ((keystate & KEY_D) != 0) { // Sagdan ucuncu bitte kayit olup olmadigini test ediyoruz
+		cdy += -std:: sin(gDegToRad(crot)) * cspeed;
+	} else if ((keystate & KEY_D) != 0) { // Sagdan 3.bitte kayit olup olmadigini test ediyoruz.
 		cdx += std::cos(gDegToRad(crot)) * cspeed;
 		cdy += std::sin(gDegToRad(crot)) * cspeed;
 	}
 
-	if ((keystate & KEY_W) != 0) { // Sagdan dorduncu bitte kayit olup olmadigini test ediyoruz
+	if ((keystate & KEY_W) != 0) { // Sagdan 4.bitte kayit olup olmadigini test ediyoruz.
 		cdx += std::sin(gDegToRad(crot)) * cspeed;
-		cdy += -std::cos(gDegToRad(crot)) * cspeed;
-	} else if ((keystate & KEY_S) != 0) { // Sagdan besinci bitte kayit olup olmadigini test ediyoruz
+		cdy += -std:: cos(gDegToRad(crot)) * cspeed;
+	} else if ((keystate & KEY_S) != 0) { // Sagdan 5.bitte kayit olup olmadigini test ediyoruz.
 		cdx += -std::sin(gDegToRad(crot)) * cspeed;
-		cdy += std::cos(gDegToRad(crot)) * cspeed;
+		cdy += std:: cos(gDegToRad(crot)) * cspeed;
 	}
+
+	// Hesaplanan karakter delta degerlerini karakterin koordinatlarina ekliyoruz
 	cx += cdx;
 	cy += cdy;
+
+	// Karakter yururken cizdirilecek animasyon kare numarasini bir bir artiriyoruz
+	if (cdx != 0.0f || cdy != 0.0f) {
+		characterframecounter++;
+		if (characterframecounter >= characterframecounterlimit) {
+			characterframeno++;
+			if (characterframeno >= characterframenum) characterframeno = 0;
+			characterframecounter = 0;
+		}
+	} else {
+		characterframeno = 0;
+		characterframecounter = 0;
+	}
 }
 
+/**
+ * Bu fonksiyon kamera hareketini simule eder. Karakter kamera marjinlerine ulastiginda
+ * kamera karakterle beraber hareket etmeye baslar. Kamera marjinlerinin icerisinde
+ * kalindigi surece kamera hareket etmez.
+ */
 void GameCanvas::moveCamera() {
-	// We make cam margins variable
+	// Kamera marjin degerlerini degisken olarak hesapliyoruz. Marjinlerin default
+	// degerini ekran boyunun yarisi olarak hesapliyoruz. Haritanin kenarlarina ulasildi
+	// ise kamera marjinlerini sifir degerini veriyoruz.
 	cammarginleft = getWidth() >> 2;
 	cammarginright = getWidth() - (getWidth() >> 2);
 	cammargintop = getHeight() >> 2;
-	cammarginbottom = getWidth() - (getWidth() >> 2);
+	cammarginbottom = getHeight() - (getHeight() >> 2);
 	if (bgsx <= 0) {
 		bgsx = 0;
 		cammarginleft = 0;
 	} else if (bgsx >= background.getWidth() - getWidth() - cspeed) {
 		bgsx = background.getWidth() - getWidth() - cspeed;
-		cammarginright = getWidth() - character.getWidth();
+		cammarginright = getWidth() - character[0].getWidth();
 	}
 	if (bgsy <= 0) {
 		bgsy = 0;
 		cammargintop = 0;
 	} else if (bgsy >= background.getHeight() - getHeight() - cspeed) {
 		bgsy = background.getHeight() - getHeight() - cspeed;
-		cammarginbottom = getHeight() - character.getHeight();
+		cammarginbottom = getHeight() - character[0].getHeight();
 	}
 
-		//We check here if character reaches cammargins
+	// Karakterin kamera marjinlerine ulasip ulasmadigini test ediyoruz. Ulasmis ise
+	// kamerayi ilerletiyoruz. Eger kamera harita sinirlarina ulasirsa, kamerayi
+	// artik ilerletmiyoruz.
 	if (cx < cammarginleft || cx >= cammarginright) {
 		bgsx += cdx;
 		cx -= cdx;
@@ -129,17 +148,41 @@ void GameCanvas::moveCamera() {
 		bgsy += cdy;
 		cy -= cdy;
 		if (bgsy < 0) {
-			bgsy = cdy;
+			bgsy -= cdy;
 			cy = cammargintop;
-		} else if (bgsy >= background.getHeight() - getHeight()){
+		} else if (bgsy >= background.getHeight() - getHeight()) {
 			bgsy -= cdy;
 			cy = cammarginbottom;
 		}
 	}
 
-	//We reset character delta values
-	cdx = 0.0f;
+	// Karakter delta degerlerini sifirliyoruz.
+	cdx = 0.0f; // Optimizasyon acisindan float degeri float olarak sifirlamak gerek
 	cdy = 0.0f;
+}
+
+/**
+ * Arkaplandaki harita cizdirilir.
+ */
+void GameCanvas::drawBackground() {
+	bgsrc.set(bgsx, bgsy, bgsx + getWidth(), bgsy + getHeight());
+	bgdst.set(0, 0, getWidth(), getHeight());
+	background.drawSub(bgsrc, bgdst);
+}
+
+/**
+ * Karakter ekrana cizdirilir. characterframeno degiskeni ekrana cizdirilecek gorsel karenin
+ * numarasini gosterir.
+ */
+void GameCanvas::drawCharacter() {
+	character[characterframeno].draw(cx, cy, cw, ch, crot);
+}
+
+/**
+ * GUI ogeleri ekrana cizdirilir.
+ */
+void GameCanvas::drawGui() {
+
 }
 
 void GameCanvas::keyPressed(int key) {
@@ -147,16 +190,16 @@ void GameCanvas::keyPressed(int key) {
 	keyno = -1;
 	switch(key) {
 	case 65: // Key A
-		keyno = KEY_A; // Sagdan ikinci bite kayit yapiyoruz
+		keyno = KEY_A; //Sagdan 2.bite kayit yapiyoruz.
 		break;
 	case 68: // Key D
-		keyno = KEY_D; // Sagdan ucuncu bite kayit yapiyoruz
+		keyno = KEY_D; //Sagdan 3.bite kayit yapiyoruz.
 		break;
 	case 87: // Key W
-		keyno = KEY_W; // Sagdan dorduncu bite kayit yapiyoruz
+		keyno = KEY_W; //Sagdan 4.bite kayit yapiyoruz.
 		break;
 	case 83: // Key S
-		keyno = KEY_S; // Sagdan besinci bite kayit yapiyoruz
+		keyno = KEY_S; //Sagdan 5.bite kayit yapiyoruz.
 		break;
 	default:
 		break;
@@ -169,16 +212,16 @@ void GameCanvas::keyReleased(int key) {
 	keyno = -1;
 		switch(key) {
 		case 65: // Key A
-			keyno = KEY_A; // Sagdan ikinci bite kayit yapiyoruz
+			keyno = KEY_A; //Sagdan 2.bite kayit yapiyoruz.
 			break;
 		case 68: // Key D
-			keyno = KEY_D; // Sagdan ucuncu bite kayit yapiyoruz
+			keyno = KEY_D; //Sagdan 3.bite kayit yapiyoruz.
 			break;
 		case 87: // Key W
-			keyno = KEY_W; // Sagdan dorduncu bite kayit yapiyoruz
+			keyno = KEY_W; //Sagdan 4.bite kayit yapiyoruz.
 			break;
 		case 83: // Key S
-			keyno = KEY_S; // Sagdan besinci bite kayit yapiyoruz
+			keyno = KEY_S; //Sagdan 5.bite kayit yapiyoruz.
 			break;
 		default:
 			break;
@@ -192,12 +235,12 @@ void GameCanvas::mouseMoved(int x, int y) {
 
 void GameCanvas::mouseDragged(int x, int y, int button) {
 //	logi("mouseDragged x:" + gToStr(x) + ", y:" + gToStr(y) + ", b:" + gToStr(button));
-	crot = (int)(gRadToDeg((float)std::atan2((float)y - cy, (float)x - cx)) + 90.0f + 360.0f) % 360;
+	crot = (int)(gRadToDeg((float)std::atan2((float)(y - cy), (float)(x - cx))) + 90.0f + 360.0f) % 360;
 }
 
 void GameCanvas::mousePressed(int x, int y, int button) {
-	crot = (int)(gRadToDeg((float)std::atan2((float)y - cy, (float)x - cx)) + 90.0f + 360.0f) % 360;
-	//logi("crot : " + gToStr(crot));
+	crot = (int)(gRadToDeg((float)std::atan2((float)(y - cy), (float)(x - cx))) + 90.0f + 360.0f) % 360;
+	//logi("crot :" + gToStr(crot));
 }
 
 void GameCanvas::mouseReleased(int x, int y, int button) {
@@ -218,8 +261,8 @@ void GameCanvas::hideNotify() {
 
 }
 
-// TERMS
+// ### TERMS ###
 // Coding Conventions
 // Main Loop
-// Synchronized/Asynchronized Functions
+// Synchronized / Asynchronized Functions
 // Bitwise Operations

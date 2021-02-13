@@ -36,21 +36,24 @@ public:
 private:
 	static const int KEY_A, KEY_D, KEY_S, KEY_W;
 
-	static const int gamepadNum = 2;
+	static const int characterframenum = 6;
 
-	gImage background;
-	gImage character;
-	gImage gamepad[gamepadNum];
-	int gpx[gamepadNum], gpy[gamepadNum];
+	gImage background; //Arkaplanimizi tanimladik
+	gImage character[characterframenum]; // Karakterimizi tanimladik
 	float crot;
 	float cx, cy, cw, ch;
 	float cspeed;
 	float cdx, cdy;
+	int characterframeno;
+	int characterframecounter, characterframecounterlimit;
 	int keyno, keystate;
 	void moveCharacter();
+	void moveCamera();
+	void drawBackground();
+	void drawCharacter();
+	void drawGui();
 	gRect bgsrc, bgdst;
 	int cammarginleft, cammarginright, cammargintop, cammarginbottom;
-	void moveCamera();
 	int bgsx, bgsy;
 };
 
