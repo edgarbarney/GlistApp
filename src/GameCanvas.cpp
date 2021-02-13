@@ -32,14 +32,21 @@ void GameCanvas::setup() {
 	gpx[1] = getWidth() - (gamepad[1].getWidth() / 2) - gamepad[1].getWidth();
 	gpy[1] = getHeight() - (gamepad[0].getHeight() / 2) - gamepad[0].getHeight();
 	crot = 0.0f;
-	cx = (getWidth() / 2) - (character.getWidth() / 2);
-	cy = (getHeight() / 2) - (character.getHeight() / 2);
+	cx = (getWidth() - character.getWidth()) >> 1;
+	cy = (getHeight() - character.getHeight()) >> 1;
 	cw = character.getWidth();
 	ch = character.getHeight();
 	cspeed = 4.0f;
 	cdx = 0.0f;
 	cdy = 0.0f;
 	keystate = 0;
+	cammarginleft = getWidth() / 4;
+	cammarginright = getWidth() - (getWidth() / 4);
+	cammargintop = getHeight() / 4;
+	cammarginbottom = getHeight() - (getHeight() / 4);
+	bgdst.set(0, 0, getWidth(), getHeight());
+	bgsx = 0;
+	bgsy = 0;
 }
 
 	//Coding Covnentions
@@ -47,15 +54,15 @@ void GameCanvas::setup() {
 void GameCanvas::update() {
 	//logi("GlistApp update");
 	moveCharacter();
+	moveCamera();
 }
 
 void GameCanvas::draw() {
 	//logi("GlistApp draw");
-	//bgsrc.set(0, 0, getWidth(), getHeight());
-	//bgdst.set(0, 0, getWidth(), getHeight());
-	//background.drawSub(bgsrc, bgdst);
-	logi("screenw:" + gToStr(getWidth()) + ", screenh:" + gToStr(getHeight()));
-	background.drawSub(0, 0, 1280, 720, 0, 0, getWidth(), getHeight());
+	bgsrc.set(bgsx, bgsy, bgsx + getWidth(), bgsy + getHeight());
+	background.drawSub(bgsrc, bgdst);
+	//logi("screenw:" + gToStr(getWidth()) + ", screenh:" + gToStr(getHeight()));
+	//background.drawSub(0, 0, 1280, 720, 0, 0, getWidth(), getHeight());
 	character.draw(cx, cy, cw, ch, crot);
 	for(int i = 0; i < gamepadNum; i++) gamepad[i].draw(gpx[i], gpy[i]);
 }
@@ -82,12 +89,61 @@ void GameCanvas::moveCharacter() {
 	}
 	cx += cdx;
 	cy += cdy;
+}
+
+void GameCanvas::moveCamera() {
+	// We make cam margins variable
+	cammarginleft = getWidth() >> 2;
+	cammarginright = getWidth() - (getWidth() >> 2);
+	cammargintop = getHeight() >> 2;
+	cammarginbottom = getWidth() - (getWidth() >> 2);
+	if (bgsx <= 0) {
+		bgsx = 0;
+		cammarginleft = 0;
+	} else if (bgsx >= background.getWidth() - getWidth() - cspeed) {
+		bgsx = background.getWidth() - getWidth() - cspeed;
+		cammarginright = getWidth() - character.getWidth();
+	}
+	if (bgsy <= 0) {
+		bgsy = 0;
+		cammargintop = 0;
+	} else if (bgsy >= background.getHeight() - getHeight() - cspeed) {
+		bgsy = background.getHeight() - getHeight() - cspeed;
+		cammarginbottom = getHeight() - character.getHeight();
+	}
+
+		//We check here if character reaches cammargins
+	if (cx < cammarginleft || cx >= cammarginright) {
+		bgsx += cdx;
+		cx -= cdx;
+		if (bgsx < 0) {
+			bgsx -= cdx;
+			cx = cammarginleft;
+		} else if (bgsx >= background.getWidth() - getWidth()) {
+			bgsx -= cdx;
+			cx = cammarginright;
+		}
+
+	}
+	if (cy < cammargintop || cy >= cammarginbottom) {
+		bgsy += cdy;
+		cy -= cdy;
+		if (bgsy < 0) {
+			bgsy = cdy;
+			cy = cammargintop;
+		} else if (bgsy >= background.getHeight() - getHeight()){
+			bgsy -= cdy;
+			cy = cammarginbottom;
+		}
+	}
+
+	//We reset character delta values
 	cdx = 0.0f;
 	cdy = 0.0f;
 }
 
 void GameCanvas::keyPressed(int key) {
-	logi("GC", "keyPressed:" + gToStr(key));
+	//logi("GC", "keyPressed:" + gToStr(key));
 	keyno = -1;
 	switch(key) {
 	case 65: // Key A
@@ -109,7 +165,7 @@ void GameCanvas::keyPressed(int key) {
 }
 
 void GameCanvas::keyReleased(int key) {
-	logi("GC", "keyReleased:" + gToStr(key));
+	//logi("GC", "keyReleased:" + gToStr(key));
 	keyno = -1;
 		switch(key) {
 		case 65: // Key A

@@ -49,7 +49,9 @@ private:
 	int keyno, keystate;
 	void moveCharacter();
 	gRect bgsrc, bgdst;
-
+	int cammarginleft, cammarginright, cammargintop, cammarginbottom;
+	void moveCamera();
+	int bgsx, bgsy;
 };
 
 #endif /* GAMECANVAS_H_ */
