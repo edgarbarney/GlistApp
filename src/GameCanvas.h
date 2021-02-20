@@ -37,11 +37,16 @@ private:
 	static const int KEY_A, KEY_D, KEY_S, KEY_W;
 
 	static const int characterframenum = 6;
+	static const int enemynum = 20;
 
 	gImage background; //Arkaplanimizi tanimladik
+	gImage levelmap;
 	gImage character[characterframenum]; // Karakterimizi tanimladik
+	gImage enemy;
+	gImage mapcharactersign, mapenemysign;
 	float crot;
-	float cx, cy, cw, ch;
+	int cx, cy, cw, ch;
+	int ccdx, ccdy;
 	float cspeed;
 	float cdx, cdy;
 	int characterframeno;
@@ -49,12 +54,19 @@ private:
 	int keyno, keystate;
 	void moveCharacter();
 	void moveCamera();
+	void moveEnemies();
 	void drawBackground();
+	void drawEnemies();
 	void drawCharacter();
+	void drawLevelMap();
 	void drawGui();
 	gRect bgsrc, bgdst;
 	int cammarginleft, cammarginright, cammargintop, cammarginbottom;
-	int bgsx, bgsy;
+	int camx, camy, camw, camh;
+	int enemyx[enemynum], enemyy[enemynum];
+	float enemyrot[enemynum];
+	int enemyw, enemyh;
+	int mapx, mapy;
 };
 
 #endif /* GAMECANVAS_H_ */
