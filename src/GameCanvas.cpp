@@ -28,7 +28,7 @@ void GameCanvas::setup() {
 	background.loadImage("oyun/haritalar/arkaplan1.jpg"); // Arkaplan resmini ekledik
 	levelmap.loadImage("oyun/haritalar/radar1.jpg");
 	for (int i = 0; i < characterframenum; i++) character[i].loadImage("oyun/karakterler/erkek/erkek_tufek_0" + gToStr(i) + ".png"); // Karakterimizi ekledik
-	enemy.loadImage("oyun/dusman/walk/Walk_000.png");
+	for (int i = 0; i < enemyframenum; i++) enemyimage[i].loadImage("oyun/dusman/walk/Walk_00" + gToStr(i) + ".png");
 	mapcharactersign.loadImage("oyun/haritalar/radarisaret1.png");
 	mapenemysign.loadImage("oyun/haritalar/radarisaret2.png");
 	crot = 0.0f;
@@ -54,17 +54,19 @@ void GameCanvas::setup() {
 	camh = getHeight();
 	camx = 0;
 	camy = 0;
-	enemyw = enemy.getWidth() / 2;
-	enemyh = enemy.getHeight() / 2;
+	enemyw = enemyimage[0].getWidth() / 2;
+	enemyh = enemyimage[0].getHeight() / 2;
 	for (int i = 0; i < enemynum; i++) {
 		do {
-			enemyx[i] = 170 + gRandom(background.getWidth() - 340);
-			enemyy[i] = 170 + gRandom(background.getHeight() - 340);
-		} while (enemyx[i] < camw && enemyy[i] < camh);
-		enemyrot[i] = 0.0f;
+			enemy[i].setPosition(170 + gRandom(background.getWidth() - 340), 170 + gRandom(background.getHeight() - 340));
+		} while (enemy[i].getX() < camw && enemy[i].getY() < camh);
+		enemy[i].setRotation(0.0f);
+		enemy[i].setFrameNo(gRandom(enemyframenum));
 	}
 	mapx = getWidth() - (levelmap.getHeight() / 2) - levelmap.getWidth();
 	mapy = levelmap.getHeight() / 2;
+	enemydx = 0.0f;
+	enemydy = 0.0f;
 }
 
 
@@ -185,7 +187,14 @@ void GameCanvas::moveCamera() {
 
 void GameCanvas::moveEnemies() {
 	for (int i = 0; i < enemynum; i++) {
-		enemyrot[i] = gRadToDeg(std::atan2((cy + ccdy + camy) - (enemyy[i] + (enemyh >> 1)), (cx + ccdx + camx) - (enemyx[i] + (enemyw >> 1)))) - 90.0f;
+		enemy[i].setRotation(gRadToDeg(std::atan2((cy + ccdy + camy) - (enemy[i].getY() + (enemyh >> 1)), (cx + ccdx + camx) - (enemy[i].getX() + (enemyw >> 1)))) - 90.0f);
+		enemydx = -std::sin(gDegToRad(enemy[i].getRotation())) * 2;
+		enemydy = std::cos(gDegToRad(enemy[i].getRotation())) * 2;
+		enemy[i].setPosition(enemy[i].getX() + enemydx, enemy[i].getY() + enemydy);
+		int fno = enemy[i].getFrameNo();
+		fno++;
+		if (fno >= enemyframenum) fno = 0;
+		enemy[i].setFrameNo(fno);
 	}
 }
 
@@ -200,7 +209,7 @@ void GameCanvas::drawBackground() {
 
 void GameCanvas::drawLevelMap() {
 	levelmap.draw(mapx, mapy);
-	for (int i = 0; i < enemynum; i++) mapenemysign.draw(mapx + 2 + (enemyx[i] >> 5), mapy + 2 + (enemyy[i] >> 5));
+	for (int i = 0; i < enemynum; i++) mapenemysign.draw(mapx + 2 + (enemy[i].getX() >> 5), mapy + 2 + (enemy[i].getY() >> 5));
 	mapcharactersign.draw(mapx + 2 + ((cx + camx) >> 5), mapy + 2 + ((cy + camy) >> 5));
 }
 
@@ -213,7 +222,7 @@ void GameCanvas::drawCharacter() {
 }
 
 void GameCanvas::drawEnemies() {
-	for (int i = 0; i < enemynum; i++) enemy.draw(enemyx[i] - camx, enemyy[i] - camy, enemy.getWidth(), enemy.getHeight(), enemyrot[i]);
+	for (int i = 0; i < enemynum; i++) enemyimage[enemy[i].getFrameNo()].draw(enemy[i].getX() - camx, enemy[i].getY() - camy, enemyimage[0].getWidth(), enemyimage[0].getHeight(), enemy[i].getRotation());
 }
 
 /**

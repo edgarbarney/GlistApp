@@ -10,6 +10,7 @@
 
 #include "gBaseCanvas.h"
 #include "gImage.h"
+#include "Enemy.h"
 
 
 class GameCanvas : public gBaseCanvas {
@@ -36,13 +37,13 @@ public:
 private:
 	static const int KEY_A, KEY_D, KEY_S, KEY_W;
 
-	static const int characterframenum = 6;
+	static const int characterframenum = 6, enemyframenum = 8;
 	static const int enemynum = 20;
 
 	gImage background; //Arkaplanimizi tanimladik
 	gImage levelmap;
 	gImage character[characterframenum]; // Karakterimizi tanimladik
-	gImage enemy;
+	gImage enemyimage[enemyframenum];
 	gImage mapcharactersign, mapenemysign;
 	float crot;
 	int cx, cy, cw, ch;
@@ -63,10 +64,10 @@ private:
 	gRect bgsrc, bgdst;
 	int cammarginleft, cammarginright, cammargintop, cammarginbottom;
 	int camx, camy, camw, camh;
-	int enemyx[enemynum], enemyy[enemynum];
-	float enemyrot[enemynum];
+	Enemy enemy[enemynum];
 	int enemyw, enemyh;
 	int mapx, mapy;
+	float enemydx, enemydy;
 };
 
 #endif /* GAMECANVAS_H_ */
