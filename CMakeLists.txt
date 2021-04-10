@@ -22,7 +22,8 @@ add_executable(${APP_NAME}
 				${APP_DIR}/src/main.cpp
 				${APP_DIR}/src/gApp.cpp
 				${APP_DIR}/src/GameCanvas.cpp
-				${APP_DIR}/src/Enemy.cpp)
+				${APP_DIR}/src/Enemy.cpp
+				${APP_DIR}/src/MenuCanvas.cpp)
 
 
 include_directories(${APP_NAME} PRIVATE

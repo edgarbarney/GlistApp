@@ -6,7 +6,7 @@
  */
 
 #include "gApp.h"
-#include "GameCanvas.h"
+#include "MenuCanvas.h"
 
 
 gApp::gApp() {
@@ -16,7 +16,7 @@ gApp::~gApp() {
 }
 
 void gApp::setup() {
-	GameCanvas *cnv = new GameCanvas(this);
+	MenuCanvas *cnv = new MenuCanvas(this);
 	appmanager->setCurrentCanvas(cnv);
 }
 
