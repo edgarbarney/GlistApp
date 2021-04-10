@@ -7,6 +7,7 @@
 
 
 #include "GameCanvas.h"
+#include "MenuCanvas.h"
 
 const int GameCanvas::KEY_A = 2;
 const int GameCanvas::KEY_D = 4;
@@ -15,6 +16,7 @@ const int GameCanvas::KEY_S = 16;
 
 
 GameCanvas::GameCanvas(gBaseApp* root) : gBaseCanvas(root) {
+	selectedcharacterno = 0;
 }
 
 GameCanvas::~GameCanvas() {
@@ -24,11 +26,8 @@ GameCanvas::~GameCanvas() {
  * Oyunda kullanilan tum degiskenlerin ilk degerleri burada verilir.
  */
 void GameCanvas::setup() {
-	logi("GlistApp setup 1");
 	background.loadImage("oyun/haritalar/arkaplan1.jpg"); // Arkaplan resmini ekledik
-	logi("GlistApp setup 2");
 	levelmap.loadImage("oyun/haritalar/radar1.png");
-	logi("GlistApp setup 3");
 	healthbar.loadImage("oyun/gui/element_0076_Layer-78.png");
 	healthbarbackground.loadImage("oyun/gui/element_0077_Layer-79.png");
 	healthbarframe.loadImage("oyun/gui/element_0092_Layer-94.png");
@@ -36,7 +35,12 @@ void GameCanvas::setup() {
 	healthicon.loadImage("oyun/gui/element_0098_Layer-100.png");
 	enemyicon.loadImage("oyun/gui/element_0100_Layer-102.png");
 	enemybar.loadImage("oyun/gui/element_0076_Layer-78b.png");
-	for (int i = 0; i < characterframenum; i++) character[i].loadImage("oyun/karakterler/erkek/erkek_tufek_0" + gToStr(i) + ".png"); // Karakterimizi ekledik
+	if (selectedcharacterno == 0) {
+		gender = "erkek";
+	} else {
+		gender = "kadin";
+	}
+	for (int i = 0; i < characterframenum; i++) character[i].loadImage("oyun/karakterler/"+ gender +"/"+ gender +"_tufek_0" + gToStr(i) + ".png"); // Karakterimizi ekledik
 	enemyanimationframenum[ENEMYANIMATION_WALK] = 8;
 	enemyanimationframenum[ENEMYANIMATION_ATTACK] = 16;
 	enemyanimationframenum[ENEMYANIMATION_DEATH] = 14;
@@ -55,6 +59,11 @@ void GameCanvas::setup() {
 	}
 	mapcharactersign.loadImage("oyun/haritalar/radarisaret1.png");
 	mapenemysign.loadImage("oyun/haritalar/radarisaret2.png");
+	pausedialogue.loadImage("oyun/gui/window_pause.png");
+	continuebutton.loadImage("oyun/gui/button_continue.png");
+	mainmenubutton.loadImage("oyun/gui/button_mainmenu.png");
+	gameoverdialogue.loadImage("oyun/gui/window_gameover.png");
+	replaybutton.loadImage("oyun/gui/button_replay.png");
 	bullet[BULLETSENDER_CHARACTER].loadImage("oyun/objeler/mermi.png");
 	bullet[BULLETSENDER_ENEMY].loadImage("oyun/objeler/mermi2.png");
 	crot = 0.0f;
@@ -130,10 +139,24 @@ void GameCanvas::setup() {
 	enemybary = (healthbarframey + healthicon.getHeight()) + (enemyicon.getHeight() - healthbarframe.getHeight()) / 2;
 	enemybarbackgroundx = healthbarbackgroundx;
 	enemybarbackgroundy = enemybary + 8;
-	logi("GlistApp setup 2");
+	dialoguex = (getWidth() - pausedialogue.getWidth()) / 2;
+	dialoguey = (getHeight() - pausedialogue.getHeight()) / 2;
+	dialoguew = pausedialogue.getWidth();
+	dialogueh = pausedialogue.getHeight();
+	leftbuttonx = ((getWidth() - continuebutton.getWidth()) / 2) - (3 * continuebutton.getWidth() / 4);
+	leftbuttony = ((getHeight() - continuebutton.getHeight()) / 2) + (dialogueh / 6);
+	leftbuttonw = continuebutton.getWidth();
+	leftbuttonh = continuebutton.getHeight();
+	rightbuttonx = ((getWidth() - mainmenubutton.getWidth()) / 2) + (3 * mainmenubutton.getWidth() / 4);
+	rightbuttony = ((getHeight() - mainmenubutton.getHeight()) / 2) + (dialogueh / 6);
+	rightbuttonw = mainmenubutton.getWidth();
+	rightbuttonh = mainmenubutton.getHeight();
+	pausedialogueshown = false;
+	gameoverdialogueshown = false;
 }
 
 void GameCanvas::update() {
+	if (pausedialogueshown || gameoverdialogueshown) return;
 	moveCharacter();
 	moveCamera();
 	moveEnemies();
@@ -147,6 +170,7 @@ void GameCanvas::draw() {
 	drawBullets();
 	drawLevelMap();
 	drawGui();
+	drawDialogue();
 	//font.drawText("FPS:" + gToStr(root->getFramerate()), 24, 24, 1);
 }
 
@@ -268,7 +292,7 @@ void GameCanvas::moveEnemies() {
 						chealth--;
 						if (chealth <= 0) {
 							chealth = 0;
-							logi("Oyunu Kaybettiniz");
+							gameoverdialogueshown = true;
 						}
 						chealthcounter = 0;
 					}
@@ -339,7 +363,7 @@ void GameCanvas::moveBullets() {
 				chealth--;
 				if (chealth <= 0) {
 					chealth = 0;
-					logi("Oyunu Kaybettiniz 2");
+					gameoverdialogueshown = true;
 				}
 				bullets.erase(bullets.begin() + i);
 				break;
@@ -358,6 +382,7 @@ void GameCanvas::drawBackground() {
 }
 
 void GameCanvas::drawLevelMap() {
+	if (pausedialogueshown || gameoverdialogueshown) return;
 	levelmap.draw(mapx, mapy);
 	for (int i = 0; i < enemynum; i++) if (enemy[i].getAnimationNo() != ENEMYANIMATION_DEATH) mapenemysign.draw(mapx + 2 + ((int)enemy[i].getX() >> 5), mapy + 2 + ((int)enemy[i].getY() >> 5));
 	mapcharactersign.draw(mapx + 2 + (((int)cx + camx) >> 5), mapy + 2 + (((int)cy + camy) >> 5));
@@ -386,6 +411,7 @@ void GameCanvas::drawBullets() {
  * GUI ogeleri ekrana cizdirilir.
  */
 void GameCanvas::drawGui() {
+	if (pausedialogueshown || gameoverdialogueshown) return;
 	charactericon.draw(charactericonx, charactericony);
 	healthicon.draw(healthx, healthy);
 	healthbarframe.draw(healthbarframex, healthbarframey);
@@ -400,8 +426,22 @@ void GameCanvas::drawGui() {
 	//enemybar.draw(enemybarx, enemybary);
 }
 
+void GameCanvas::drawDialogue() {
+	if (pausedialogueshown) {
+		pausedialogue.draw(dialoguex, dialoguey, dialoguew, dialogueh);
+		continuebutton.draw(leftbuttonx, leftbuttony, leftbuttonw, leftbuttonh);
+		mainmenubutton.draw(rightbuttonx, rightbuttony, rightbuttonw, rightbuttonh);
+	}
+	if (gameoverdialogueshown) {
+		gameoverdialogue.draw(dialoguex, dialoguey, dialoguew, dialogueh);
+		replaybutton.draw(leftbuttonx, leftbuttony, leftbuttonw, leftbuttonh);
+		mainmenubutton.draw(rightbuttonx, rightbuttony, rightbuttonw, rightbuttonh);
+	}
+}
+
 void GameCanvas::keyPressed(int key) {
 	//logi("GC", "keyPressed:" + gToStr(key));
+	if (pausedialogueshown || gameoverdialogueshown) return;
 	keyno = -1;
 	switch(key) {
 	case 65: // Key A
@@ -424,6 +464,8 @@ void GameCanvas::keyPressed(int key) {
 
 void GameCanvas::keyReleased(int key) {
 	//logi("GC", "keyReleased:" + gToStr(key));
+	if (key == KEYCODE_ESC) pausedialogueshown = !pausedialogueshown;
+	if (pausedialogueshown || gameoverdialogueshown) return;
 	keyno = -1;
 		switch(key) {
 		case 65: // Key A
@@ -446,6 +488,7 @@ void GameCanvas::keyReleased(int key) {
 
 void GameCanvas::mouseMoved(int x, int y) {
 //	logi("mouseMoved x:" + gToStr(x) + ", y:" + gToStr(y));
+	if (pausedialogueshown || gameoverdialogueshown) return;
 	crot = gRadToDeg(std::atan2(y - (cy + (character[0].getHeight() / 2)), x - (cx + (character[0].getWidth())))) + 90.0f;
 	muzzleangle = crot + muzzledangle;
 }
@@ -460,6 +503,20 @@ void GameCanvas::mousePressed(int x, int y, int button) {
 
 void GameCanvas::mouseReleased(int x, int y, int button) {
 //	logi("GC", "mouseReleased, button:" + gToStr(button));
+	if (pausedialogueshown && x >= leftbuttonx && x < leftbuttonx + leftbuttonw && y >= leftbuttony && y < leftbuttony + leftbuttonh) {
+		pausedialogueshown = false;
+	}
+	if ((pausedialogueshown || gameoverdialogueshown) && x >= rightbuttonx && x < rightbuttonx + rightbuttonw && y >= rightbuttony && y < rightbuttony + rightbuttonh) {
+		MenuCanvas* cnv = new MenuCanvas(root);
+		root->getAppManager()->setCurrentCanvas(cnv);
+	}
+	if (gameoverdialogueshown && x >= leftbuttonx && x < leftbuttonx + leftbuttonw && y >= leftbuttony && y < leftbuttony + leftbuttonh) {
+		GameCanvas* cnv = new GameCanvas(root);
+		cnv->setSelectedCharacterNo(selectedcharacterno);
+		root->getAppManager()->setCurrentCanvas(cnv);
+	}
+
+	if (pausedialogueshown || gameoverdialogueshown) return;
 	float nbx = std::sin(gDegToRad(muzzleangle)) * muzzledistance;
 	float nby = -std::cos(gDegToRad(muzzleangle)) * muzzledistance;
 	float bx = cx + ((cw - bullet[BULLETSENDER_CHARACTER].getWidth()) / 2) + nbx + camx; // x
@@ -504,6 +561,10 @@ void GameCanvas::generateBullet(float bulletx, float bullety, float bulletdx, fl
 
 	// Yeni mermiyi mermiler vektorune ekliyoruz
 	bullets.push_back(newbullet);
+}
+
+void GameCanvas::setSelectedCharacterNo(int selectedCharacterNo) {
+	selectedcharacterno = selectedCharacterNo;
 }
 
 // ### TERMS ###

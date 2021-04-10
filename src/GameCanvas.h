@@ -35,8 +35,11 @@ public:
 	void showNotify();
 	void hideNotify();
 
+	void setSelectedCharacterNo(int selectedCharacterNo);
+
 private:
 	static const int KEY_A, KEY_D, KEY_S, KEY_W;
+	static const int KEYCODE_ESC = 256;
 	static const int ENEMYANIMATION_WALK = 0, ENEMYANIMATION_ATTACK = 1, ENEMYANIMATION_DEATH = 2;
 	static const int BULLETSENDER_CHARACTER = 0, BULLETSENDER_ENEMY = 1;
 
@@ -56,6 +59,10 @@ private:
 	gImage healthbar;
 	gImage enemyicon;
 	gImage enemybar;
+	gImage pausedialogue;
+	gImage continuebutton, mainmenubutton;
+	gImage gameoverdialogue;
+	gImage replaybutton;
 	float crot;
 	float cx, cy, cw, ch;
 	int ccdx, ccdy;
@@ -74,6 +81,7 @@ private:
 	void drawBullets();
 	void drawLevelMap();
 	void drawGui();
+	void drawDialogue();
 	void generateBullet(float bulletx, float bullety, float bulletdx, float bulletdy, float bulletrotation, int bulletSender);
 	gRect bgsrc, bgdst;
 	int cammarginleft, cammarginright, cammargintop, cammarginbottom;
@@ -105,6 +113,13 @@ private:
 	int enemyiconx, enemyicony;
 	int enemybarx, enemybary;
 	int enemybarbackgroundx, enemybarbackgroundy;
+	int selectedcharacterno;
+	std::string gender;
+	int dialoguex, dialoguey, dialoguew, dialogueh;
+	int leftbuttonx, leftbuttony, leftbuttonw, leftbuttonh;
+	int rightbuttonx, rightbuttony, rightbuttonw, rightbuttonh;
+	bool pausedialogueshown;
+	bool gameoverdialogueshown;
 };
 
 #endif /* GAMECANVAS_H_ */

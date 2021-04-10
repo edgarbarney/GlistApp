@@ -95,7 +95,8 @@ void MenuCanvas::mousePressed(int x, int y, int button) {
 
 void MenuCanvas::mouseReleased(int x, int y, int button) {
 	if (x >= playx && x < playx + playw && y >= playy && y < playy + playh) {
-		GameCanvas *cnv = new GameCanvas(root);
+		GameCanvas* cnv = new GameCanvas(root);
+		cnv->setSelectedCharacterNo(selectedcharacter);
 		root->getAppManager()->setCurrentCanvas(cnv);
 	}
 	if (x >= cimagex[0] && x < cimagex[0] + cimagew && y >= cimagey && y < cimagey + cimageh) {
